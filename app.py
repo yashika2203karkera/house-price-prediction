@@ -1,57 +1,54 @@
-from pymongo import MongoClient
-import json
-
+# app.py
 import os
-from dotenv import load_dotenv
 from pymongo import MongoClient
+from flask import Flask, render_template, request, jsonify
 
-# Load environment variables from .env
-load_dotenv()
+# ------------------------------
+# MongoDB connection (safe)
+# ------------------------------
+mongo_uri = os.environ.get("MONGO_URI")  # set this in terminal/session
+if not mongo_uri:
+    raise ValueError("MONGO_URI not set. Please set environment variable.")
 
-mongo_uri = os.getenv("MONGO_URI")
 client = MongoClient(mongo_uri)
-db = client['your_database_name']  # replace with your DB name
+db = client['house_price_db']  # replace with your DB name
 
-db = client["house_price_db"]
-collection = db["houses"]
+# ------------------------------
+# Flask app setup
+# ------------------------------
+app = Flask(__name__)
 
-# Load JSON file
-with open("housing.json") as file:
-    data = json.load(file)
+# Home route
+@app.route('/')
+def home():
+    return render_template('index.html')
 
-# Optional: Clear old data (to avoid duplicate insert)
-collection.delete_many({})
+# Prediction route
+@app.route('/predict', methods=['POST'])
+def predict():
+    try:
+        # Try JSON first
+        if request.is_json:
+            data = request.get_json()
+        else:
+            # Fallback to form data
+            data = request.form.to_dict()
 
-# Insert data
-collection.insert_many(data)
+        if not data:
+            return jsonify({"error": "No valid data provided"}), 400
 
-print("Data inserted successfully!")
+        # Example ML prediction (replace with your model)
+        predicted_values = [1, 2, 3, 4, 5, 6]  # placeholder
 
-from pymongo import MongoClient
-import json
+        # Always return valid JSON
+        return jsonify({
+            "prediction": predicted_values
+        })
 
-import os
-from dotenv import load_dotenv
-from pymongo import MongoClient
+    except Exception as e:
+        # Catch unexpected errors
+        return jsonify({"error": "Server error", "details": str(e)}), 500
 
-# Load environment variables from .env
-load_dotenv()
-
-mongo_uri = os.getenv("MONGO_URI")
-client = MongoClient(mongo_uri)
-db = client['your_database_name']  # replace with your DB name
-
-db = client["house_price_db"]
-collection = db["houses"]
-
-# Load JSON file
-with open("housing.json") as file:
-    data = json.load(file)
-
-# Optional: Clear old data (to avoid duplicate insert)
-collection.delete_many({})
-
-# Insert data
-collection.insert_many(data)
-
-print("Data inserted successfully!")
+# Run the app
+if __name__ == '__main__':
+    app.run(debug=True)
